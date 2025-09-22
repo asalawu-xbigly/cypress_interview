@@ -1,11 +1,12 @@
 # cypress-ui-testing
 
 ---
-# Overview
 
 ## Getting Setup With [Cypress](https://docs.cypress.io/guides/getting-started/installing-cypress)
 
 ### Pre-requisites
+- Create your own branch with format below and commit all work to your branch
+  - interview/firstName-LastName
 
 - Git [installation](https://www.atlassian.com/git/tutorials/install-git)
   - Also, checkout our [Git & Source Control Docs](https://healthforceio.atlassian.net/wiki/spaces/PHAR/pages/44236851/Git+Source+Control)
