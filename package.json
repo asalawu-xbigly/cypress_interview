@@ -19,11 +19,8 @@
     "totp-generator-ts": "^1.0.3"
   },
   "scripts": {
-    "mock-server:clone": "git clone git@bitbucket.org:pharmacy-brix/brix-qa-websocket-mock-server.git",
-    "mock-server:open-branch": "cd brix-qa-websocket-mock-server; git checkout master",
-    "mock-server:start": "cd brix-qa-websocket-mock-server; docker compose up -d",
     "cypress:open": "cypress open",
-    "cy:run": "npx cypress run --group 4x-electron --parallel",
+    "cy:run": "npx cypress run",
     "cy:regressiontest": "npx cypress run --browser chrome -e TAGS='@regression'",
     "cy:development-regressiontest": "npx cypress run --browser chrome -e TAGS='@regression' --config-file config.development.js",
     "cy:stage-regressiontest": "npx cypress run --browser chrome -e TAGS='@regression' --config-file config.staging.js",
