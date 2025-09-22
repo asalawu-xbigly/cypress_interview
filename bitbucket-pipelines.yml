@@ -1,0 +1,242 @@
+definitions:
+    services:
+        docker:
+            type: docker
+
+pipelines:
+    default:
+      - step:
+          image: cypress/browsers:latest
+          services: [ docker ]
+          caches:
+            - node
+          runs-on:
+            - self.hosted
+            - linux
+            - brix
+            - 328617498560
+          name: Run Front End Test
+          script:
+            - apt update -y
+            - apt install curl -y
+            - DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+            - mkdir -p $DOCKER_CONFIG/cli-plugins
+            - mkdir -p $BITBUCKET_CLONE_DIR/coverage
+            - curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+            - chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+            - npm run mock-server:clone
+            - npm run mock-server:open-branch
+            - npm run mock-server:start
+            - npm ci
+            - npx cypress cache path
+            - npx cypress cache list
+            - npm run cy:run || true
+          artifacts:
+            paths:
+              - cypress/reports/html/**
+
+      - step:
+          runs-on:
+            - self.hosted
+            - linux
+            - brix
+            - 328617498560
+          caches:
+            - node
+          name: Upload Report
+          deployment: Development
+          oidc: true
+          script:
+            - ls -lrt
+            - pipe: atlassian/aws-s3-deploy:1.4.0
+              variables:
+                AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                AWS_DEFAULT_REGION: af-south-1
+                S3_BUCKET: brix-aws-af-south-1-dev-allure-reports-front-end
+                LOCAL_PATH: 'cypress/reports/html/'
+            - pipe: atlassian/aws-cloudfront-invalidate:0.9.0
+              variables:
+                AWS_DEFAULT_REGION: af-south-1
+                AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                DISTRIBUTION_ID: E3DVZCWOE3CW5
+            - pipe: atlassian/slack-notify:2.0.0
+              variables:
+                WEBHOOK_URL: $SLACK_WEBHOOK_URL
+                MESSAGE: 'QA Development Frontend Test Automation Complete - Report is here https://d3hqdsu2dpxh2t.cloudfront.net/'
+
+    pull-requests:
+        'OS-*/*': #This runs a build for any branch with a ticket prefix
+            - step:
+                  image: cypress/browsers:latest
+                  services: [docker]
+                  caches:
+                      - node
+                  runs-on:
+                      - self.hosted
+                      - linux
+                      - brix
+                      - 328617498560
+                  name: Run Front End Test
+                  script:
+                      - apt update -y
+                      - apt install curl -y
+                      - DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+                      - mkdir -p $DOCKER_CONFIG/cli-plugins
+                      - mkdir -p $BITBUCKET_CLONE_DIR/coverage
+                      - curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+                      - chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+                      - npm run mock-server:clone
+                      - npm run mock-server:open-branch
+                      - npm run mock-server:start
+                      - npm ci
+                      - npx cypress cache path
+                      - npx cypress cache list
+                      - npm run cy:run || true
+                  artifacts:
+                      paths:
+                          - cypress/reports/html/**
+            - step:
+                runs-on:
+                  - self.hosted
+                  - linux
+                  - brix
+                  - 328617498560
+                caches:
+                  - node
+                name: Upload Report
+                deployment: Development
+                oidc: true
+                script:
+                  - ls -lrt
+                  - pipe: atlassian/aws-s3-deploy:1.4.0
+                    variables:
+                      AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                      AWS_DEFAULT_REGION: af-south-1
+                      S3_BUCKET: brix-aws-af-south-1-dev-allure-reports-front-end
+                      LOCAL_PATH: 'cypress/reports/html/'
+                  - pipe: atlassian/aws-cloudfront-invalidate:0.9.0
+                    variables:
+                      AWS_DEFAULT_REGION: af-south-1
+                      AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                      DISTRIBUTION_ID: E3DVZCWOE3CW5
+                  - pipe: atlassian/slack-notify:2.0.0
+                    variables:
+                      WEBHOOK_URL: $SLACK_WEBHOOK_URL
+                      MESSAGE: 'QA Development Frontend Test Automation Complete - Report is here https://d3hqdsu2dpxh2t.cloudfront.net/'
+    branches:
+        development:
+            - step:
+                image: cypress/browsers:latest
+                services: [docker]
+                caches:
+                    - node
+                runs-on:
+                    - self.hosted
+                    - linux
+                    - brix
+                    - 328617498560
+                name: Run Front End Test
+                script:
+                    - apt update -y
+                    - apt install curl -y
+                    - DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+                    - mkdir -p $DOCKER_CONFIG/cli-plugins
+                    - mkdir -p $BITBUCKET_CLONE_DIR/coverage
+                    - curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+                    - chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+                    - npm run mock-server:clone
+                    - npm run mock-server:open-branch
+                    - npm run mock-server:start
+                    - npm ci
+                    - npx cypress cache path
+                    - npx cypress cache list
+                    - npm run cy:development-regressiontest || true
+                artifacts:
+                    paths:
+                        - cypress/reports/html/**
+            - step:
+                runs-on:
+                    - self.hosted
+                    - linux
+                    - brix
+                    - 328617498560
+                caches:
+                    - node
+                name: Upload Report
+                deployment: Development
+                oidc: true
+                script:
+                    - ls -lrt
+                    - pipe: atlassian/aws-s3-deploy:1.4.0
+                      variables:
+                        AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                        AWS_DEFAULT_REGION: af-south-1
+                        S3_BUCKET: brix-aws-af-south-1-dev-allure-reports-front-end
+                        LOCAL_PATH: 'cypress/reports/html/'
+                    - pipe: atlassian/aws-cloudfront-invalidate:0.9.0
+                      variables:
+                        AWS_DEFAULT_REGION: af-south-1
+                        AWS_OIDC_ROLE_ARN: arn:aws:iam::328617498560:role/brix-aws-af-south-1-dev-qa-cypress-ui-testing-role
+                        DISTRIBUTION_ID: E3DVZCWOE3CW5
+                    - pipe: atlassian/slack-notify:2.0.0
+                      variables:
+                        WEBHOOK_URL: $SLACK_WEBHOOK_URL
+                        MESSAGE: 'QA Development Frontend Test Automation Complete - Report is here https://d3hqdsu2dpxh2t.cloudfront.net/'
+        staging:
+            - step:
+                image: cypress/browsers:latest
+                services: [docker]
+                caches:
+                    - node
+                runs-on:
+                    - self.hosted
+                    - linux
+                    - brix
+                    - 706021752892
+                name: Run Front End Test
+                script:
+                    - apt update -y
+                    - apt install curl -y
+                    - DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+                    - mkdir -p $DOCKER_CONFIG/cli-plugins
+                    - mkdir -p $BITBUCKET_CLONE_DIR/coverage
+                    - curl -SL https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+                    - chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+                    - npm run mock-server:clone
+                    - npm run mock-server:open-branch
+                    - npm run mock-server:start
+                    - npm ci
+                    - npx cypress cache path
+                    - npx cypress cache list
+                    - npm run cy:stage-regressiontest || true
+                artifacts:
+                    paths:
+                        - cypress/reports/html/**
+            - step:
+                runs-on:
+                    - self.hosted
+                    - linux
+                    - brix
+                    - 706021752892
+                caches:
+                    - node
+                name: Upload Report
+                deployment: Staging
+                oidc: true
+                script:
+                    - ls -lrt
+                    - pipe: atlassian/aws-s3-deploy:1.4.0
+                      variables:
+                        AWS_OIDC_ROLE_ARN: arn:aws:iam::706021752892:role/brix-aws-af-south-1-stg-qa-cypress-ui-testing-role
+                        AWS_DEFAULT_REGION: af-south-1
+                        S3_BUCKET: brix-aws-af-south-1-stg-allure-reports-front-end
+                        LOCAL_PATH: 'cypress/reports/html/'
+                    - pipe: atlassian/aws-cloudfront-invalidate:0.9.0
+                      variables:
+                        AWS_DEFAULT_REGION: af-south-1
+                        AWS_OIDC_ROLE_ARN: arn:aws:iam::706021752892:role/brix-aws-af-south-1-stg-qa-cypress-ui-testing-role
+                        DISTRIBUTION_ID: E2Y9HTJWWHY0QZ
+                    - pipe: atlassian/slack-notify:2.0.0
+                      variables:
+                        WEBHOOK_URL: $SLACK_WEBHOOK_URL
+                        MESSAGE: 'QA STAGE/UAT Frontend Test Automation Complete - Report is here https://d3vylet88uelhz.cloudfront.net'
